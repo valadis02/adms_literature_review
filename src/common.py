@@ -25,10 +25,13 @@ ERA_LABELS = ["$\\leq$2009", "2010–2019", "2020–2026"]
 MATURITY = ["concept", "simulation", "lab/hil testbed", "field pilot", "deployed in operation/product"]
 FIELD = {"field pilot", "deployed in operation/product"}
 
-# Next-generation definitions. "main" is the one used in the paper (Section 2.3);
-# the others are the sensitivity variants.
+# Next-generation definition of the paper (Section 2.3): at least one of families 5, 6, 7, 9, 10.
 NEXTGEN = {
     "main: >=1 of {5,6,7,9,10}": lambda L: any(f in L for f in (5, 6, 7, 9, 10)),
+}
+# Alternative definitions, computed only with `s05_abstract_mapping.py --sensitivity`.
+# They are not reported in the paper (see its Limitations).
+NEXTGEN_VARIANTS = {
     "without family 9": lambda L: any(f in L for f in (5, 6, 7, 10)),
     ">=2 of {5,6,7,9,10}": lambda L: sum(f in L for f in (5, 6, 7, 9, 10)) >= 2,
 }

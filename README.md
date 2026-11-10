@@ -24,17 +24,23 @@ tests/run_demo.sh               runs the whole pipeline on synthetic data
 | Step | Script | Produces |
 |---|---|---|
 | 1 | `s01_merge_dedup.py` | unique records with ids, duplicates within and across databases, metadata criteria, PRISMA identification numbers |
-| 2 | `s02_human_sheet.py all\|sample\|retest` | blind screening sheets for the human reviewer (no LLM decisions shown); stratified sample; re-test sheet for intra-rater agreement |
-| 3 | `s03_llm_batches.py make\|collect` | batches and prompts for the LLM screener; collects and checks its answers |
-| 4 | `s04_agreement.py llm\|retest\|finalize` | Cohen's kappa, precision/recall of the LLM against the human, agreement on exclusion codes and families; disagreement sheet; final decisions |
-| 5 | `s05_abstract_mapping.py` | Figs. 4-6, family shares per period, next-generation share under three definitions (sensitivity) |
-| 6 | `s06_select_fulltext.py cited\|random` | full-text subset (all reviews + top-k cited per family x period) and a stratified random robustness sample |
-| 7 | `s07_fulltext_analysis.py [--sample]` | Fig. 7, maturity per family with counts, data inputs, standards, stated gaps, triangulation table |
+| 3 | `s03_llm_batches.py make\|collect` | batches and prompts for the LLM screener; collects and checks its answers (run before step 2) |
+| 2 | `s02_verify_sheet.py --frac 0.10` | verification sheet: all LLM inclusions and a random 10% of the LLM exclusions, with the LLM decision shown |
+| 4 | `s04_verification.py summary\|finalize` | number of decisions changed in the verification, list of changed rows; final decisions |
+| 5 | `s05_abstract_mapping.py` | Figs. 4-6, family shares per period, next-generation share per period |
+| 6 | `s06_select_fulltext.py cited\|q5` | full-text subset (all reviews + top-3 cited per family x period, Scopus first, then records added from IEEE Xplore); Q5 coverage check and the six Q5 records read in full |
+| 7 | `s07_fulltext_analysis.py` | Fig. 7, maturity per family with counts, data inputs, standards, stated gaps, triangulation table |
 | 8 | `s08_latex_tables.py` | LaTeX tables of the full-text studies |
 | 9 | `s09_check_references.py refs.bib` | DOI/title/year check of the bibliography against Crossref (optional, needs internet) |
 
-Run order with the real data: `bash run_all.sh` (steps 1, 4 finalize, 5, 7, 8 - the steps that need no human input).
-Steps 2-4 and 6 produce sheets that a person fills in between runs.
+Steps 2 and 3 are numbered by file name; the LLM screening (3) runs first and the verification sheet (2) is
+made from its output.
+
+Run order with the real data: `bash run_all.sh` (steps 1, 4, 5, 6 q5, 7, 8 - the steps that need no human input).
+Steps 2, 3 and 6 cited produce files that a person works on between runs.
+
+Not used in the paper, kept for further work: `s05_abstract_mapping.py --sensitivity` (alternative
+next-generation definitions) and `s06_select_fulltext.py random` (random robustness sample of full texts).
 
 ## Reproduce the figures and numbers
 
@@ -49,11 +55,16 @@ Test without data: `bash tests/run_demo.sh`.
 ## Screening protocol in short
 
 1. Metadata criteria are applied by script (step 1).
-2. Title/abstract screening against `screening/criteria.md` by the human reviewer, blind to the LLM.
-3. The LLM screens the same records independently with the same criteria (step 3).
-4. Agreement is measured (step 4); every disagreement is resolved by the human reviewer and logged in
-   `data/decisions/disagreements.xlsx` with the final decision.
-5. Intra-rater consistency: a subset is re-screened by the same reviewer after at least two weeks (step 2 `retest`).
+2. A language model screens every remaining record against `screening/criteria.md`, with the prompt in
+   `screening/llm_prompt.md` (step 3). It returns a decision, an exclusion code and the capability families.
+3. One reviewer checks all LLM inclusions and a random 10% of the LLM exclusions (step 2), with the LLM
+   decision visible, and records the verified decision for each checked row.
+4. Step 4 reports how many decisions were changed and in which direction, lists every changed row in
+   `data/decisions/verification_changes.csv`, and writes the final decisions: the verified decision where the
+   record was checked, the LLM decision otherwise.
+
+There was no second independent human reviewer, so no inter-rater agreement is reported. Exclusions outside
+the 10% sample were not checked.
 
 ## Licence
 

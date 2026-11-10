@@ -3,18 +3,19 @@
 Input : data/interim/records.csv, data/decisions/screening_final.csv
 Output: outputs/figures/per_year.pdf, sources.pdf, family_era.pdf
         outputs/numbers_abstract.json   screening counts, exclusion codes, family shares,
-                                        next-generation share per period for every definition in common.NEXTGEN
-        outputs/nextgen_sensitivity.csv
+                                        next-generation share per period (definition of the paper)
+        outputs/nextgen_sensitivity.csv only with --sensitivity (alternative definitions, not in the paper)
 
-Usage : python src/s05_abstract_mapping.py
+Usage : python src/s05_abstract_mapping.py [--sensitivity]
 """
+import argparse
 import json
 import re
 
 import pandas as pd
 
-from common import C1, C3, DECISIONS, ERA_LABELS, ERAS, FAM, FIG, INTERIM, NEXTGEN, OUT, era, parse_families, \
-    plot_style, read_table
+from common import C1, C3, DECISIONS, ERA_LABELS, ERAS, FAM, FIG, INTERIM, NEXTGEN, NEXTGEN_VARIANTS, OUT, era, \
+    parse_families, plot_style, read_table
 
 VENUE_ALIASES = {  # same series under different names in the exports
     r"^iet conference (proceedings|publications)|^iee conference publication": "IET/IEE Conference Publications",
@@ -40,6 +41,9 @@ def venue(s):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--sensitivity", action="store_true", help="also compute the alternative definitions")
+    args = ap.parse_args()
     plt = plot_style()
     rec = read_table(INTERIM / "records.csv")
     fin = read_table(DECISIONS / "screening_final.csv")
@@ -73,16 +77,18 @@ def main():
     share = pd.DataFrame(rows, columns=["f", "era", "pct"]).pivot(index="f", columns="era", values="pct")[ERAS]
     num["family_share_pct"] = share.round(1).to_dict()
 
-    # next-generation share per period, for each definition (sensitivity analysis)
+    # next-generation share per period (main definition; variants only with --sensitivity)
+    defs = dict(NEXTGEN, **NEXTGEN_VARIANTS) if args.sensitivity else NEXTGEN
     sens = []
-    for name, rule in NEXTGEN.items():
+    for name, rule in defs.items():
         row = {"definition": name}
         for e in ERAS:
             sub = inc[inc.era == e]
             row[e] = round(100 * sub.fl.map(rule).mean(), 1) if len(sub) else None
         sens.append(row)
     sens = pd.DataFrame(sens)
-    sens.to_csv(OUT / "nextgen_sensitivity.csv", index=False)
+    if args.sensitivity:
+        sens.to_csv(OUT / "nextgen_sensitivity.csv", index=False)
     num["nextgen_share_pct"] = sens.set_index("definition").to_dict(orient="index")
 
     # Fig. 4: records per year and database

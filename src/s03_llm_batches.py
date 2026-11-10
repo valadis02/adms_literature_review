@@ -1,7 +1,7 @@
 """Step 3 - batches for the LLM screener and collection of its answers.
 
-The LLM receives the same written criteria as the human (screening/criteria.md) and the prompt in
-screening/llm_prompt.md. Each batch is a CSV of records; the LLM returns a CSV with
+The LLM receives the written criteria (screening/criteria.md) and the prompt in screening/llm_prompt.md.
+Its decisions are then checked by the reviewer (steps 2 and 4). Each batch is a CSV of records; the LLM returns a CSV with
 id,decision,code,families,reason for every id.
 
 Usage

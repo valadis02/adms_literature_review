@@ -1,13 +1,15 @@
 # Full-text extraction form
 
-One row per full text in `data/decisions/extraction.csv`. Values in `code font` are the allowed labels.
+One row per full text in `data/decisions/extraction.csv` (the six Q5 records go in `extraction_q5.csv`).
+The form is pre-filled by the LLM and every row is checked by the reviewer against the full text.
+Values in `code font` are the allowed labels.
 
 | Column | Content |
 |---|---|
 | `id` | record id from `data/interim/records.csv` (R0001, I0001, ...) |
 | `bibkey` | citation key used in the paper's .bib |
 | `year` | publication year |
-| `sample` | `cited` (selection rule of the paper) or `random` (robustness sample) |
+| `sample` | `cited` (selection rule of the paper); `random` only for the optional robustness sample, not used in the paper |
 | `unit` | `system`, `function`, `testbed` or `review` |
 | `generation` | `legacy` or `next` (definition of Section 2.3) |
 | `families` | capability families addressed, `;`-separated (e.g. `1;5;6`) |

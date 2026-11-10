@@ -68,18 +68,26 @@ def after_s01():
     out.mkdir(parents=True, exist_ok=True)
     llm.iloc[: len(llm) // 2].to_csv(out / "screen_1.csv", index=False)
     llm.iloc[len(llm) // 2:].to_csv(out / "screen_2.csv", index=False)
+    print("LLM decision files written")
+
+
+def after_s02():
     random.seed(2)
-    hum = decisions(ids[:200], flip=0.0)
-    hum["decision"] = [d if random.random() > 0.08 else ("exclude" if d == "include" else "include")
-                       for d in llm.set_index("id").loc[hum.id, "decision"]]
-    hum.to_excel(D / "decisions" / "screening_human.xlsx", index=False)
-    hum.iloc[:50].to_csv(D / "decisions" / "screening_human_retest.csv", index=False)
-    print("decision files written")
+    v = pd.read_excel(D / "decisions" / "verification_sheet.xlsx", dtype=str).fillna("")
+    flip = [random.random() < 0.05 for _ in range(len(v))]
+    v["verified_decision"] = [("exclude" if d == "include" else "include") if f else d
+                              for d, f in zip(v.llm_decision, flip)]
+    v["verified_code"] = ["E1" if (f and d == "include") else "" for d, f in zip(v.llm_decision, flip)]
+    v["verified_families"] = ["1;5" if (f and d == "exclude") else "" for d, f in zip(v.llm_decision, flip)]
+    v["note"] = ["synthetic change" if f else "" for f in flip]
+    v.to_excel(D / "decisions" / "verification.xlsx", index=False)
+    pd.DataFrame([rec(i, "s") for i in range(900, 930)]).assign(
+        Title=lambda d: "DSO flexibility estimation " + d.Title).to_csv(D / "raw" / "q5_scopus.csv", index=False)
+    print("verification and Q5 export written")
 
 
 def after_s06():
-    ft = pd.concat([pd.read_csv(D / "interim" / f, dtype=str) for f in ("fulltext_cited.csv",
-                                                                        "fulltext_random.csv")])
+    ft = pd.read_csv(D / "interim" / "fulltext_cited.csv", dtype=str)
     inc = pd.read_csv(D / "interim" / "included.csv", dtype=str, keep_default_na=False).set_index("id")
     rows = []
     for _, r in ft.iterrows():
@@ -98,4 +106,4 @@ def after_s06():
 
 
 if __name__ == "__main__" and len(sys.argv) > 2:
-    {"after_s01": after_s01, "after_s06": after_s06}[sys.argv[2]]()
+    {"after_s01": after_s01, "after_s02": after_s02, "after_s06": after_s06}[sys.argv[2]]()
